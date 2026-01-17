@@ -22,6 +22,14 @@ If you don't like something, just scroll away. No downvotes, no negativity—jus
 ### Frontend
 - **Vite** - Next-generation frontend build tool
 - **React** - UI library for building interactive interfaces
+- **TypeScript** - Type-safe UI development
+- **Tailwind CSS** - Utility-first styling
+- **shadcn/ui** - Accessible component primitives
+- **react-hook-form** - Form state management
+- **React Router** - Client-side routing
+- **axios** - API client
+- **lucide-react** - Icon library
+- **Clerk** - Authentication and user management
 
 ### Backend
 - **Bun** - Fast JavaScript runtime
@@ -133,8 +141,7 @@ virtue-machine/
 │   │   ├── components/      # React components
 │   │   ├── pages/           # Page components
 │   │   ├── hooks/           # Custom React hooks
-│   │   ├── services/        # API services
-│   │   ├── utils/           # Utility functions
+│   │   ├── lib/             # API clients + utilities
 │   │   └── main.tsx         # Entry point
 │   └── package.json
 ├── backend/                  # Express.js + Bun application
@@ -142,8 +149,8 @@ virtue-machine/
 │   │   ├── routes/          # API endpoints
 │   │   ├── controllers/      # Request handlers
 │   │   ├── services/        # Business logic
-│   │   ├── middleware/      # Express middleware
-│   │   ├── prisma/          # Prisma schema
+│   │   ├── middlewares/     # Express middleware
+│   │   ├── prisma/          # Prisma client
 │   │   └── index.ts         # Entry point
 │   ├── prisma/
 │   │   └── schema.prisma    # Database schema
@@ -156,6 +163,7 @@ virtue-machine/
 ### Frontend
 ```
 VITE_API_URL=http://localhost:3000
+VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key
 ```
 
 ### Backend
@@ -163,26 +171,13 @@ VITE_API_URL=http://localhost:3000
 DATABASE_URL=postgresql://user:password@localhost:5432/virtue_machine
 NODE_ENV=development
 PORT=3000
-JWT_SECRET=your_secret_key
+CORS_ORIGIN=http://localhost:5173
 ```
 
 ## API Endpoints
 
-### Posts
-- `GET /api/posts` - Get all posts
-- `POST /api/posts` - Create a new post
-- `GET /api/posts/:id` - Get a specific post
-- `PUT /api/posts/:id` - Update a post
-- `DELETE /api/posts/:id` - Delete a post
-
-### Comments
-- `GET /api/posts/:id/comments` - Get comments for a post
-- `POST /api/posts/:id/comments` - Add a comment
-- `DELETE /api/comments/:id` - Delete a comment
-
-### Reactions
-- `POST /api/posts/:id/react` - React to a post (thumbs up/down)
-- `POST /api/comments/:id/react` - React to a comment
+### Health
+- `GET /api/v1/health` - API status check
 
 ## Contributing
 

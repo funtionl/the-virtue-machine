@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ReactionType {
+  UP
+  DOWN
+}
+
+model User {
+  id           String     @id @default(cuid())
+  clerkUserId  String     @unique
+  displayName  String?
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  posts        Post[]
+  comments     Comment[]
+  reactions    Reaction[]
+}
+
+model Post {
+  id              String      @id @default(cuid())
+  authorId        String
+  contentOriginal String
+  contentPositive String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  author          User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments        Comment[]
+  reactions       Reaction[]
+
+  @@index([authorId])
+}
+
+model Comment {
+  id              String      @id @default(cuid())
+  postId          String
+  authorId        String
+  contentOriginal String
+  contentPositive String
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  post            Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author          User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  reactions       Reaction[]
+
+  @@index([postId])
+  @@index([authorId])
+}
+
+model Reaction {
+  id        String       @id @default(cuid())
+  type      ReactionType
+  postId    String?
+  commentId String?
+  userId    String
+  createdAt DateTime     @default(now())
+
+  post      Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
+  comment   Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([postId])
+  @@index([commentId])
+  @@index([userId])
+}
