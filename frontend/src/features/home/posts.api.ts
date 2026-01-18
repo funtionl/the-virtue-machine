@@ -64,6 +64,25 @@ export const createPost = async (data: {
   return response.data;
 };
 
+export type Comment = {
+  id: string;
+  postId: string;
+  authorId: string;
+  content: string;
+  createdAt: string;
+  updatedAt: string;
+  author: PostAuthor;
+  isAuthor?: boolean;
+};
+
+export type CommentsPage = {
+  items: Comment[];
+  pageInfo: {
+    nextCursor: string | null;
+    hasNextPage: boolean;
+  };
+};
+
 export const toggleReaction = async (
   postId: string,
   reactionType: "UP" | "DOWN" = "UP",
@@ -71,5 +90,31 @@ export const toggleReaction = async (
   const response = await apiClient.post(`/api/posts/${postId}/reactions`, {
     type: reactionType,
   });
+  return response.data;
+};
+
+export const fetchCommentsForPost = async (
+  postId: string,
+  params?: {
+    cursor?: string;
+    limit?: number;
+  },
+) => {
+  const response = await apiClient.get<CommentsPage>(
+    `/api/posts/${postId}/comments`,
+    {
+      params,
+    },
+  );
+  return response.data;
+};
+
+export const createCommentForPost = async (postId: string, content: string) => {
+  const response = await apiClient.post<Comment>(
+    `/api/posts/${postId}/comments`,
+    {
+      content,
+    },
+  );
   return response.data;
 };

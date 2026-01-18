@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import PostCard from "@/features/home/components/PostCard";
-import PostDetailModal from "@/components/modals/PostDetailModal";
+import PostDetailModal from "@/features/home/components/PostDetailModal";
 import PostComposeModal from "@/components/modals/PostComposeModal";
 import { fetchAllPosts, type Post } from "@/features/home/posts.api";
 
