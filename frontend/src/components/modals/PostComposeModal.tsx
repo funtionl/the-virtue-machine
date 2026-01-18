@@ -14,7 +14,8 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { output, ready, translate } = useWorker();
+  const [rewrittenContent, setRewrittenContent] = useState<string | null>(null);
+  const { ready, translate } = useWorker();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -69,18 +70,31 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
     try {
       // Rewrite the content first
       setIsRewriting(true);
-      translate(content.trim());
-      // Wait for rewriting to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsRewriting(false);
+      translate(content.trim(), {
+        onUpdate: () => {}, // Ignore streaming updates for now
+        onComplete: async (output) => {
+          setRewrittenContent(output);
+          setIsRewriting(false);
 
-      setIsSubmitting(true);
-      await createPost({
-        content: output || content.trim(),
-        image: selectedImage,
+          // Now submit the post with rewritten content
+          setIsSubmitting(true);
+          try {
+            await createPost({
+              content: output || content.trim(),
+              image: selectedImage,
+            });
+            onPostCreated?.();
+            onClose();
+          } catch (submitErr) {
+            setError(
+              submitErr instanceof Error
+                ? submitErr.message
+                : "Failed to create post. Please try again.",
+            );
+            setIsSubmitting(false);
+          }
+        },
       });
-      onPostCreated?.();
-      onClose();
     } catch (err) {
       setError(
         err instanceof Error

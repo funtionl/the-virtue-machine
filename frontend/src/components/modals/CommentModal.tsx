@@ -10,7 +10,7 @@ const CommentModal = ({ onClose, postId }: Props) => {
   const [comment, setComment] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isRewriting, setIsRewriting] = useState(false);
-  const { output, ready, translate } = useWorker();
+  const { ready, translate } = useWorker();
 
   // ESC key handling
   useEffect(() => {
@@ -38,16 +38,20 @@ const CommentModal = ({ onClose, postId }: Props) => {
     try {
       // Rewrite the comment first
       setIsRewriting(true);
-      translate(comment.trim());
-      // Wait for rewriting to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsRewriting(false);
-
-      setIsSubmitting(true);
-      // TODO: Wire to actual comment API
-      console.log("Posting comment:", output || comment.trim());
-      setComment("");
-      setIsSubmitting(false);
+      translate(comment.trim(), {
+        onUpdate: () => {}, // Ignore streaming updates
+        onComplete: async (output) => {
+          setIsRewriting(false);
+          setIsSubmitting(true);
+          try {
+            // TODO: Wire to actual comment API
+            console.log("Posting comment:", output || comment.trim());
+            setComment("");
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      });
     } catch (err) {
       console.error("Failed to post comment:", err);
       setIsRewriting(false);

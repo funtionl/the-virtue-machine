@@ -7,4 +7,4 @@
 **/.turbo
 **/.vite
 **/.cache
-
+**/uploads

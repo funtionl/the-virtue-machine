@@ -29,6 +29,7 @@ self.addEventListener("message", async (event) => {
       self.postMessage({
         status: "update",
         output: text,
+        requestId: event.data.requestId,
       });
     },
   });
@@ -49,5 +50,6 @@ self.addEventListener("message", async (event) => {
   self.postMessage({
     status: "complete",
     output,
+    requestId: event.data.requestId,
   });
 });

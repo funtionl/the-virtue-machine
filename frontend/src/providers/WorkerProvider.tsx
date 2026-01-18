@@ -13,24 +13,25 @@ interface ProgressItem {
   status?: string;
 }
 
+interface TranslateOptions {
+  onUpdate?: (text: string) => void;
+  onComplete?: (output: string) => void;
+}
+
 interface WorkerContextType {
   worker: Worker | null;
   ready: boolean;
-  disabled: boolean;
-  output: string;
   progressItems: ProgressItem[];
-  setOutput: (value: string) => void;
-  translate: (text: string) => void;
+  translate: (text: string, options: TranslateOptions) => string;
 }
 
 const WorkerContext = createContext<WorkerContextType | undefined>(undefined);
 
 export const WorkerProvider = ({ children }: { children: ReactNode }) => {
   const [ready, setReady] = useState(false);
-  const [disabled, setDisabled] = useState(false);
   const [progressItems, setProgressItems] = useState<ProgressItem[]>([]);
-  const [output, setOutput] = useState("");
   const workerRef = useRef<Worker | null>(null);
+  const callbacksRef = useRef<Map<string, TranslateOptions>>(new Map());
 
   // Initialize worker on mount
   useEffect(() => {
@@ -68,11 +69,22 @@ export const WorkerProvider = ({ children }: { children: ReactNode }) => {
             break;
 
           case "update":
-            setOutput((o) => o + e.data.output);
+            const updateCallbacks = callbacksRef.current.get(e.data.requestId);
+            if (updateCallbacks?.onUpdate) {
+              updateCallbacks.onUpdate(e.data.output);
+            }
             break;
 
           case "complete":
-            setDisabled(false);
+            const completeCallbacks = callbacksRef.current.get(
+              e.data.requestId,
+            );
+            if (completeCallbacks?.onComplete) {
+              completeCallbacks.onComplete(
+                e.data.output?.[0]?.generated_text || "",
+              );
+            }
+            callbacksRef.current.delete(e.data.requestId);
             break;
         }
       };
@@ -87,23 +99,22 @@ export const WorkerProvider = ({ children }: { children: ReactNode }) => {
     };
   }, []);
 
-  const translate = (text: string) => {
-    setDisabled(true);
-    setOutput("");
+  const translate = (text: string, options: TranslateOptions) => {
+    const newRequestId = crypto.randomUUID();
+    callbacksRef.current.set(newRequestId, options);
     if (workerRef.current) {
       workerRef.current.postMessage({
         text,
+        requestId: newRequestId,
       });
     }
+    return newRequestId;
   };
 
   const value: WorkerContextType = {
     worker: workerRef.current,
     ready,
-    disabled,
-    output,
     progressItems,
-    setOutput,
     translate,
   };
 

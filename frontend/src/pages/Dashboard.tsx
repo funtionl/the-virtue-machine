@@ -15,14 +15,18 @@ const Dashboard = () => {
   const [loading, setLoading] = useState(true);
 
   const [inputVal, setInputVal] = useState("");
-  const { output, ready, translate } = useWorker();
+  const [rewriteOutput, setRewriteOutput] = useState("");
+  const { ready, translate } = useWorker();
 
   // Inputs and outputs
 
   const debouncedRewrite = useDebouncedCallback(
     // function
     (query: string) => {
-      translate(query);
+      translate(query, {
+        onUpdate: (text) => setRewriteOutput((prev) => prev + text),
+        onComplete: (output) => setRewriteOutput(output),
+      });
     },
     // delay in ms
     1000,
@@ -88,7 +92,7 @@ const Dashboard = () => {
       />
 
       <textarea
-        value={output}
+        value={rewriteOutput}
         readOnly
         className="w-full min-h-25 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 shadow-sm placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
       />

@@ -36,7 +36,7 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
   const [isLiked, setIsLiked] = useState(false);
   const [reactionsCount, setReactionsCount] = useState(0);
   const [isReactionLoading, setIsReactionLoading] = useState(false);
-  const { output, ready, translate } = useWorker();
+  const { ready, translate } = useWorker();
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const commentsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -128,25 +128,32 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
     try {
       // Rewrite the comment first
       setIsRewriting(true);
-      translate(commentInput.trim());
-      // Wait for rewriting to complete
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      setIsRewriting(false);
-
-      setIsSubmitting(true);
-      const newComment = await createCommentForPost(
-        post.id,
-        output || commentInput.trim(),
-      );
-      setComments((prev) => [newComment, ...prev]);
-      setCommentInput("");
-      // Scroll to top to see the new comment
-      commentsContainerRef.current?.scrollTo({ top: 0, behavior: "smooth" });
+      translate(commentInput.trim(), {
+        onUpdate: () => {}, // Ignore streaming updates
+        onComplete: async (output) => {
+          setIsRewriting(false);
+          setIsSubmitting(true);
+          try {
+            const newComment = await createCommentForPost(
+              post.id,
+              output || commentInput.trim(),
+            );
+            setComments((prev) => [newComment, ...prev]);
+            setCommentInput("");
+            // Scroll to top to see the new comment
+            commentsContainerRef.current?.scrollTo({
+              top: 0,
+              behavior: "smooth",
+            });
+          } finally {
+            setIsSubmitting(false);
+          }
+        },
+      });
     } catch (error) {
       console.error("Failed to create comment:", error);
-    } finally {
-      setIsSubmitting(false);
       setIsRewriting(false);
+      setIsSubmitting(false);
     }
   };
 
