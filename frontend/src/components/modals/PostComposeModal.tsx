@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { createPost } from "@/features/home/posts.api";
+import { useWorker } from "@/providers/WorkerProvider";
 
 type Props = {
   onClose: () => void;
@@ -11,7 +12,9 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const { output, ready, translate } = useWorker();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -64,9 +67,16 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
     }
 
     try {
+      // Rewrite the content first
+      setIsRewriting(true);
+      translate(content.trim());
+      // Wait for rewriting to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsRewriting(false);
+
       setIsSubmitting(true);
       await createPost({
-        content: content.trim(),
+        content: output || content.trim(),
         image: selectedImage,
       });
       onPostCreated?.();
@@ -79,6 +89,7 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
       );
     } finally {
       setIsSubmitting(false);
+      setIsRewriting(false);
     }
   };
 
@@ -112,7 +123,7 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
               placeholder="What's on your mind?"
               className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
               rows={5}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRewriting}
             />
           </div>
 
@@ -128,7 +139,7 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
                   onChange={handleImageSelect}
                   className="hidden"
                   id="image-input"
-                  disabled={isSubmitting}
+                  disabled={isSubmitting || isRewriting}
                 />
                 <label
                   htmlFor="image-input"
@@ -168,17 +179,26 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
             <button
               type="button"
               onClick={onClose}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRewriting}
               className="rounded-lg border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
             >
               Cancel
             </button>
             <button
               type="submit"
-              disabled={isSubmitting}
-              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+              disabled={isSubmitting || isRewriting}
+              className="rounded-lg bg-blue-500 px-4 py-2 text-sm font-medium text-white hover:bg-blue-600 disabled:cursor-not-allowed disabled:opacity-50 flex items-center gap-2"
             >
-              {isSubmitting ? "Creating..." : "Create Post"}
+              {isRewriting ? (
+                <>
+                  <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+                  Rewriting...
+                </>
+              ) : isSubmitting ? (
+                "Creating..."
+              ) : (
+                "Create Post"
+              )}
             </button>
           </div>
         </form>

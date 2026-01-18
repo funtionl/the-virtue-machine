@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useUser } from "@clerk/clerk-react";
 import { apiClient } from "@/lib/api";
+import { useDebouncedCallback } from "use-debounce";
+import { useWorker } from "@/providers/WorkerProvider";
 
 type HealthResponse = {
   status: string;
@@ -11,6 +13,29 @@ const Dashboard = () => {
   const { user } = useUser();
   const [health, setHealth] = useState<HealthResponse | null>(null);
   const [loading, setLoading] = useState(true);
+
+  const [inputVal, setInputVal] = useState("");
+  const { output, ready, translate } = useWorker();
+
+  // Inputs and outputs
+
+  const debouncedRewrite = useDebouncedCallback(
+    // function
+    (query: string) => {
+      translate(query);
+    },
+    // delay in ms
+    1000,
+  );
+
+  const handleChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const query = event.target.value;
+    // Implement search functionality here
+
+    setInputVal(query);
+
+    debouncedRewrite(query);
+  };
 
   useEffect(() => {
     let active = true;
@@ -51,6 +76,22 @@ const Dashboard = () => {
           explore the community feed once the backend is ready.
         </p>
       </div>
+
+      <label htmlFor="raw-post">Post</label>
+      <input
+        id="raw-post"
+        type="text"
+        value={inputVal}
+        placeholder="What's in your mind?"
+        onChange={handleChange}
+        className="w-full rounded-xl border border-slate-200 bg-white/70 px-4 py-3 shadow-sm placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+      />
+
+      <textarea
+        value={output}
+        readOnly
+        className="w-full min-h-25 rounded-xl border border-slate-200 bg-white/70 px-4 py-3 shadow-sm placeholder:text-slate-400 focus:border-amber-400 focus:outline-none focus:ring-1 focus:ring-amber-400"
+      />
 
       <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6">
         <h3 className="text-lg font-semibold text-slate-900">API Connection</h3>

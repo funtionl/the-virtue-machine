@@ -6,33 +6,36 @@ import SignUpPage from "@/pages/SignUpPage";
 import TopNav from "@/components/TopNav";
 import About from "@/pages/About";
 import Home from "@/pages/Home";
+import { WorkerProvider } from "@/providers/WorkerProvider";
 
 const App = () => {
   return (
-    <div className="min-h-screen bg-linear-to-b from-amber-50 via-white to-rose-50 text-slate-900">
-      <TopNav />
-      <main className="mx-auto w-full max-w-5xl px-4 py-10">
-        <Routes>
-          <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
-          <Route path="/sign-in/*" element={<SignInPage />} />
-          <Route path="/sign-up/*" element={<SignUpPage />} />
-          <Route
-            path="/app"
-            element={
-              <>
-                <SignedIn>
-                  <Dashboard />
-                </SignedIn>
-                <SignedOut>
-                  <Navigate to="/sign-in" replace />
-                </SignedOut>
-              </>
-            }
-          />
-        </Routes>
-      </main>
-    </div>
+    <WorkerProvider>
+      <div className="min-h-screen bg-linear-to-b from-amber-50 via-white to-rose-50 text-slate-900">
+        <TopNav />
+        <main className="mx-auto w-full max-w-5xl px-4 py-10">
+          <Routes>
+            <Route path="/" element={<Home />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/sign-in/*" element={<SignInPage />} />
+            <Route path="/sign-up/*" element={<SignUpPage />} />
+            <Route
+              path="/app"
+              element={
+                <>
+                  <SignedIn>
+                    <Dashboard />
+                  </SignedIn>
+                  <SignedOut>
+                    <Navigate to="/sign-in" replace />
+                  </SignedOut>
+                </>
+              }
+            />
+          </Routes>
+        </main>
+      </div>
+    </WorkerProvider>
   );
 };
 
