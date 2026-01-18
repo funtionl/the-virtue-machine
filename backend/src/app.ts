@@ -5,6 +5,7 @@ import { requestLogger } from "./middlewares/requestLogger";
 import { notFound } from "./middlewares/notFound";
 import { errorHandler } from "./middlewares/errorHandler";
 import { env } from "./config/env";
+import path from "path";
 
 const app = express();
 
@@ -15,11 +16,11 @@ app.use(
   }),
 );
 app.use(express.json());
+// serve uploaded files
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(requestLogger);
 
-app.use("/api/v1", routes);
-
-app.use("/api/v1/users", routes);
+app.use("/api", routes);
 
 app.use(notFound);
 app.use(errorHandler);
