@@ -12,4 +12,5 @@ export const env = {
   databaseUrl: requireEnv("DATABASE_URL"),
   corsOrigin: process.env.CORS_ORIGIN ?? "http://localhost:5173",
   clerkSecretKey: requireEnv("CLERK_SECRET_KEY"),
+  apiBaseUrl: process.env.API_BASE_URL ?? "http://localhost:3000/api",
 };

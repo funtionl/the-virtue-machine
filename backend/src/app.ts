@@ -19,12 +19,13 @@ if (env.nodeEnv !== "production") {
   );
 }
 app.use(express.json());
-// serve uploaded files
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 app.use(clerkMiddleware());
 app.use(requestLogger);
 
 app.use("/api", routes);
+
+// serve uploaded files under /api/uploads
+app.use("/api/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.use(notFound);
 app.use(errorHandler);

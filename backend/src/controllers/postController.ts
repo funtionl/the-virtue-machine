@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { getClerkUserId } from "../middlewares/clerkAuth";
 import { getDbUserOrThrow, virtueRewrite } from "./controllerHelpers";
+import { env } from "../config/env";
 
 /**
  * GET /posts
@@ -165,7 +166,7 @@ export const getPostById = async (
 /**
  * POST /posts
  * Auth required.
- * body: { imageUrl: string, content: string }
+ * multipart form data: { content: string, image?: file }
  */
 export const createPost = async (req: Request, res: Response) => {
   try {
@@ -173,24 +174,28 @@ export const createPost = async (req: Request, res: Response) => {
 
     const dbUser = await getDbUserOrThrow(clerkUserId);
 
-    const { imageUrl, content } = req.body as {
-      imageUrl?: string;
+    const { content } = req.body as {
       content?: string;
     };
+    const file = (req as any).file as Express.Multer.File | undefined;
 
-    if (typeof imageUrl !== "string" || !imageUrl.trim()) {
-      return res.status(400).json({ message: "imageUrl is required" });
-    }
     if (typeof content !== "string" || !content.trim()) {
       return res.status(400).json({ message: "content is required" });
     }
 
     const cleaned = await virtueRewrite(content);
 
+    // Build imageUrl if file was uploaded
+    let imageUrl: string | undefined = undefined;
+    if (file) {
+      // Generate the URL that the frontend can use to fetch the image
+      imageUrl = `${env.apiBaseUrl}/uploads/${file.filename}`;
+    }
+
     const created = await prisma.post.create({
       data: {
         authorId: dbUser.id,
-        imageUrl: imageUrl.trim(),
+        ...(imageUrl ? { imageUrl } : {}),
         content: cleaned,
       },
       select: {

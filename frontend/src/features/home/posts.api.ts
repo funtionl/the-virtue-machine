@@ -61,11 +61,18 @@ export const fetchPostById = async (postId: string) => {
   return response.data;
 };
 
-export const createPost = async (data: {
-  content: string;
-  imageUrl?: string;
-}) => {
-  const response = await apiClient.post<Post>("/api/posts", data);
+export const createPost = async (data: { content: string; image?: File }) => {
+  const formData = new FormData();
+  formData.append("content", data.content);
+  if (data.image) {
+    formData.append("image", data.image);
+  }
+
+  const response = await apiClient.post<Post>("/api/posts", formData, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
   return response.data;
 };
 

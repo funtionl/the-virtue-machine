@@ -8,7 +8,8 @@ type Props = {
 
 const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
   const [content, setContent] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -27,6 +28,32 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
     };
   }, []);
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image size must be less than 5MB");
+      return;
+    }
+
+    setSelectedImage(file);
+    setError(null);
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      setImagePreview(event.target?.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const handleRemoveImage = () => {
+    setSelectedImage(null);
+    setImagePreview(null);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -40,7 +67,7 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
       setIsSubmitting(true);
       await createPost({
         content: content.trim(),
-        imageUrl: imageUrl.trim() || undefined,
+        image: selectedImage,
       });
       onPostCreated?.();
       onClose();
@@ -91,16 +118,50 @@ const PostComposeModal = ({ onClose, onPostCreated }: Props) => {
 
           <div>
             <label className="mb-2 block text-sm font-medium text-slate-700">
-              Image URL (optional)
+              Image (optional)
             </label>
-            <input
-              type="url"
-              value={imageUrl}
-              onChange={(e) => setImageUrl(e.target.value)}
-              placeholder="https://example.com/image.jpg"
-              className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-200"
-              disabled={isSubmitting}
-            />
+            {!selectedImage ? (
+              <div className="rounded-lg border-2 border-dashed border-slate-300 p-6 text-center hover:border-blue-400 hover:bg-blue-50">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                  id="image-input"
+                  disabled={isSubmitting}
+                />
+                <label
+                  htmlFor="image-input"
+                  className="cursor-pointer space-y-2"
+                >
+                  <div className="text-2xl">📷</div>
+                  <p className="text-sm text-slate-600">
+                    Click to upload an image (max 5MB)
+                  </p>
+                  <p className="text-xs text-slate-500">
+                    JPEG, PNG, GIF, or WebP
+                  </p>
+                </label>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <div className="relative inline-block max-w-full">
+                  <img
+                    src={imagePreview}
+                    alt="Preview"
+                    className="max-h-64 rounded-lg border border-slate-300"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute -right-2 -top-2 rounded-full bg-rose-500 p-1 text-white hover:bg-rose-600"
+                  >
+                    ✕
+                  </button>
+                </div>
+                <p className="text-xs text-slate-500">{selectedImage.name}</p>
+              </div>
+            )}
           </div>
 
           <div className="flex justify-end gap-3 pt-2">

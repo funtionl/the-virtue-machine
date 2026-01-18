@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireClerkAuth } from "../middlewares/clerkAuth";
+import { uploadMiddleware } from "../middlewares/uploadMiddleware";
 import {
   listPosts,
   getPostById,
@@ -23,7 +24,12 @@ router.get("/", listPosts);
 router.get("/:id", getPostById);
 
 // protected CRUD
-router.post("/", requireClerkAuth, createPost);
+router.post(
+  "/",
+  requireClerkAuth,
+  uploadMiddleware.single("image"),
+  createPost,
+);
 router.patch("/:id", requireClerkAuth, updatePost);
 router.delete("/:id", requireClerkAuth, deletePost);
 
