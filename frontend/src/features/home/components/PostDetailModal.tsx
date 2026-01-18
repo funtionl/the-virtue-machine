@@ -7,6 +7,7 @@ import {
   createCommentForPost,
   toggleReaction,
 } from "@/features/home/posts.api";
+import { useWorker } from "@/providers/WorkerProvider";
 import CommentItem from "@/features/home/components/CommentItem";
 
 type Props = {
@@ -28,12 +29,14 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isRewriting, setIsRewriting] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [reactionsCount, setReactionsCount] = useState(0);
   const [isReactionLoading, setIsReactionLoading] = useState(false);
+  const { output, ready, translate } = useWorker();
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const commentsContainerRef = useRef<HTMLDivElement>(null);
 
@@ -120,11 +123,21 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!post || !commentInput.trim() || isSubmitting) return;
+    if (!post || !commentInput.trim() || isSubmitting || isRewriting) return;
 
     try {
+      // Rewrite the comment first
+      setIsRewriting(true);
+      translate(commentInput.trim());
+      // Wait for rewriting to complete
+      await new Promise((resolve) => setTimeout(resolve, 500));
+      setIsRewriting(false);
+
       setIsSubmitting(true);
-      const newComment = await createCommentForPost(post.id, commentInput);
+      const newComment = await createCommentForPost(
+        post.id,
+        output || commentInput.trim(),
+      );
       setComments((prev) => [newComment, ...prev]);
       setCommentInput("");
       // Scroll to top to see the new comment
@@ -133,6 +146,7 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
       console.error("Failed to create comment:", error);
     } finally {
       setIsSubmitting(false);
+      setIsRewriting(false);
     }
   };
 
@@ -369,15 +383,19 @@ const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
               placeholder="Add a comment..."
               value={commentInput}
               onChange={(e) => setCommentInput(e.target.value)}
-              disabled={isSubmitting}
+              disabled={isSubmitting || isRewriting}
               className="flex-1 rounded-lg border border-slate-300 px-3 py-2 text-sm placeholder-slate-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 disabled:bg-slate-50"
             />
             <button
               type="submit"
-              disabled={!commentInput.trim() || isSubmitting}
-              className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed"
+              disabled={!commentInput.trim() || isSubmitting || isRewriting}
+              className="rounded-lg bg-blue-500 p-2 text-white transition-colors hover:bg-blue-600 disabled:bg-slate-300 disabled:cursor-not-allowed flex items-center justify-center min-w-10"
             >
-              <Send size={18} />
+              {isRewriting ? (
+                <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent"></span>
+              ) : (
+                <Send size={18} />
+              )}
             </button>
           </form>
         </div>
