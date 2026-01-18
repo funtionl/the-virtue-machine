@@ -6,6 +6,8 @@ import {
   createPost,
   updatePost,
   deletePost,
+  listCommentsForPost,
+  createCommentForPost,
 } from "../controllers/postController";
 
 const router = Router();
@@ -18,5 +20,9 @@ router.get("/:id", getPostById);
 router.post("/", requireClerkAuth, createPost);
 router.patch("/:id", requireClerkAuth, updatePost);
 router.delete("/:id", requireClerkAuth, deletePost);
+
+// comments under a post ✅ (becomes /posts/:id/comments)
+router.get("/:id/comments", listCommentsForPost);
+router.post("/:id/comments", requireClerkAuth, createCommentForPost);
 
 export default router;
