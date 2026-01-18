@@ -4,7 +4,7 @@ import { useAuth } from "@clerk/clerk-react";
 import { apiClient } from "@/lib/api";
 
 export function AxiosAuthProvider({ children }: { children: React.ReactNode }) {
-  const { getToken, isSignedIn } = useAuth();
+  const { getToken, isSignedIn, isLoaded } = useAuth();
 
   useEffect(() => {
     const interceptor = apiClient.interceptors.request.use(async (config) => {
@@ -20,6 +20,10 @@ export function AxiosAuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => apiClient.interceptors.request.eject(interceptor);
   }, [getToken, isSignedIn]);
+
+  if (!isLoaded) {
+    return <>loading...</>; // or a loading spinner
+  }
 
   return <>{children}</>;
 }

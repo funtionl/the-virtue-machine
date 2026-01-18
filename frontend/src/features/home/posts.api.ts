@@ -19,6 +19,7 @@ export type Post = {
   updatedAt: string;
   author: PostAuthor;
   _count: PostCounts;
+  likedByCurrentUser: boolean;
 };
 
 export type PostsPage = {
@@ -60,5 +61,15 @@ export const createPost = async (data: {
   imageUrl?: string;
 }) => {
   const response = await apiClient.post<Post>("/api/posts", data);
+  return response.data;
+};
+
+export const toggleReaction = async (
+  postId: string,
+  reactionType: "UP" | "DOWN" = "UP",
+) => {
+  const response = await apiClient.post(`/api/posts/${postId}/reactions`, {
+    type: reactionType,
+  });
   return response.data;
 };

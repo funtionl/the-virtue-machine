@@ -16,6 +16,22 @@ export const listPosts = async (req: Request, res: Response) => {
 
   const limit = Math.min(Math.max(Number(limitRaw ?? 10), 1), 50);
 
+  // Try to get the current user for checking reactions
+  let currentUserId: string | null = null;
+  try {
+    const clerkUserId = getClerkUserId(req);
+
+    if (clerkUserId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkUserId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id ?? null;
+    }
+  } catch {
+    // User not authenticated, that's fine for public feed
+  }
+
   const posts = await prisma.post.findMany({
     take: limit + 1, // fetch one extra to determine hasNextPage
     ...(cursor
@@ -44,6 +60,14 @@ export const listPosts = async (req: Request, res: Response) => {
           reactions: true,
         },
       },
+      ...(currentUserId
+        ? {
+            reactions: {
+              where: { userId: currentUserId },
+              select: { storedType: true },
+            },
+          }
+        : {}),
     },
   });
 
@@ -52,8 +76,15 @@ export const listPosts = async (req: Request, res: Response) => {
 
   const nextCursor = hasNextPage ? items[items.length - 1]?.id : null;
 
+  // Transform to include userReaction field
+  const transformedItems = items.map((post) => ({
+    ...post,
+    likedByCurrentUser: post.reactions?.[0]?.storedType === "UP",
+    reactions: undefined, // Remove the reactions array
+  }));
+
   return res.json({
-    items,
+    items: transformedItems,
     pageInfo: {
       nextCursor,
       hasNextPage,
@@ -110,7 +141,7 @@ export const getPostById = async (
 export const createPost = async (req: Request, res: Response) => {
   try {
     const clerkUserId = getClerkUserId(req);
-    console.log("clerkUserId:", clerkUserId);
+
     const dbUser = await getDbUserOrThrow(clerkUserId);
 
     const { imageUrl, content } = req.body as {
@@ -386,5 +417,91 @@ export const createCommentForPost = async (
     return res
       .status(err?.statusCode ?? 500)
       .json({ message: err?.message ?? "Server error" });
+  }
+};
+
+/**
+ * POST /posts/:id/reactions
+ * Auth required. Toggle thumbs up reaction.
+ */
+export const togglePostReaction = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id: postId } = req.params;
+    const clerkUserId = getClerkUserId(req);
+    const dbUser = await getDbUserOrThrow(clerkUserId);
+
+    // Verify post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if user already has a reaction on this post
+    const existing = await prisma.reaction.findUnique({
+      where: {
+        postId_userId: {
+          postId,
+          userId: dbUser.id,
+        },
+      },
+    });
+
+    if (existing) {
+      // If reaction exists, remove it
+      await prisma.reaction.delete({
+        where: {
+          postId_userId: {
+            postId,
+            userId: dbUser.id,
+          },
+        },
+      });
+    } else {
+      // If reaction doesn't exist, create it
+      await prisma.reaction.create({
+        data: {
+          postId,
+          userId: dbUser.id,
+          storedType: "UP",
+        },
+      });
+    }
+
+    // Return updated post with counts
+    const updated = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        imageUrl: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
+      },
+    });
+
+    return res.json(updated);
+  } catch (err: any) {
+    const status = err?.statusCode ?? 500;
+    return res.status(status).json({ message: err?.message ?? "Server error" });
   }
 };

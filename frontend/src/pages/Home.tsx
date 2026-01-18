@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import PostCard from "@/components/feed/PostCard";
+import PostCard from "@/features/home/components/PostCard";
 import PostDetailModal from "@/components/modals/PostDetailModal";
 import PostComposeModal from "@/components/modals/PostComposeModal";
 import { fetchAllPosts, type Post } from "@/features/home/posts.api";
@@ -66,7 +66,7 @@ const Home = () => {
       )}
 
       {!isLoading && !error && (
-        <div className="columns-1 [column-gap:1.5rem] sm:columns-2 lg:columns-3 xl:columns-4">
+        <div className="columns-1 gap-x-6 sm:columns-2 lg:columns-3 xl:columns-4">
           {sortedPosts.map((post) => (
             <div key={post.id} className="mb-6 break-inside-avoid">
               <PostCard post={post} onOpen={setSelectedPost} />

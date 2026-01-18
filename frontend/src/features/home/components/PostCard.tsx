@@ -1,5 +1,4 @@
 import PostActions from "./PostActions";
-import PostComments from "./PostComments";
 import type { Post } from "@/features/home/posts.api";
 
 type Props = {
@@ -50,10 +49,12 @@ const PostCard = ({ post, onOpen }: Props) => {
       <p className="line-clamp-3 text-sm text-slate-700">{post.content}</p>
 
       {/* Actions */}
-      <PostActions postId={post.id} />
-
-      {/* Comments */}
-      <PostComments postId={post.id} />
+      <PostActions
+        postId={post.id}
+        thumbsUpCount={post._count.reactions}
+        commentsCount={post._count.comments}
+        likedByCurrentUser={post.likedByCurrentUser}
+      />
     </article>
   );
 };

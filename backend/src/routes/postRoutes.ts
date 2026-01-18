@@ -8,6 +8,7 @@ import {
   deletePost,
   listCommentsForPost,
   createCommentForPost,
+  togglePostReaction,
 } from "../controllers/postController";
 import {
   deleteMyReactionForPost,
@@ -33,6 +34,9 @@ router.post("/:id/comments", requireClerkAuth, createCommentForPost);
 // reactions under a post ✅ (becomes /posts/:id/reaction)
 router.get("/:id/reaction", requireClerkAuth, getMyReactionForPost);
 router.put("/:id/reaction", requireClerkAuth, upsertReactionForPost);
-router.delete("/:id/reaction", requireClerkAuth, deleteMyReactionForPost);
+
+// reactions ✅ (toggle thumbs up, becomes /posts/:id/reactions)
+router.post("/:id/reactions", requireClerkAuth, togglePostReaction);
+router.delete("/:id/reactions", requireClerkAuth, togglePostReaction);
 
 export default router;
