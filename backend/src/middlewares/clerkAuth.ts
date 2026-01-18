@@ -19,5 +19,8 @@ export function requireClerkAuth(
 
 export function getClerkUserId(req: Request): string {
   const auth = (req as any).clerkAuth ?? getAuth(req);
+  if (!auth?.userId) {
+    throw new Error("User not authenticated");
+  }
   return auth.userId as string;
 }

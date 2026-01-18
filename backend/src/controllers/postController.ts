@@ -110,6 +110,7 @@ export const getPostById = async (
 export const createPost = async (req: Request, res: Response) => {
   try {
     const clerkUserId = getClerkUserId(req);
+    console.log("clerkUserId:", clerkUserId);
     const dbUser = await getDbUserOrThrow(clerkUserId);
 
     const { imageUrl, content } = req.body as {

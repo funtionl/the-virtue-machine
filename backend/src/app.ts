@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { clerkMiddleware } from "@clerk/express";
 import routes from "./routes";
 import { requestLogger } from "./middlewares/requestLogger";
 import { notFound } from "./middlewares/notFound";
@@ -20,6 +21,7 @@ if (env.nodeEnv !== "production") {
 app.use(express.json());
 // serve uploaded files
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+app.use(clerkMiddleware());
 app.use(requestLogger);
 
 app.use("/api", routes);

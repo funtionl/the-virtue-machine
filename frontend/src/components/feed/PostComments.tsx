@@ -1,4 +1,4 @@
-const PostComments = ({ postId }: { postId: number }) => {
+const PostComments = ({ postId }: { postId: string }) => {
   return (
     <div className="mt-3 space-y-1 text-sm">
       <p>

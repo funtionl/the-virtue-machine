@@ -15,7 +15,7 @@ const Dashboard = () => {
   useEffect(() => {
     let active = true;
     apiClient
-      .get<HealthResponse>("/api/v1/health")
+      .get<HealthResponse>("/api/health")
       .then((response) => {
         if (active) {
           setHealth(response.data);
@@ -53,15 +53,13 @@ const Dashboard = () => {
       </div>
 
       <div className="rounded-2xl border border-dashed border-slate-200 bg-white/70 p-6">
-        <h3 className="text-lg font-semibold text-slate-900">
-          API Connection
-        </h3>
+        <h3 className="text-lg font-semibold text-slate-900">API Connection</h3>
         <p className="mt-2 text-sm text-slate-600">
           {loading
             ? "Checking the backend status..."
             : health
-            ? `Connected · ${health.status} (${health.timestamp})`
-            : "No response from the API yet."}
+              ? `Connected · ${health.status} (${health.timestamp})`
+              : "No response from the API yet."}
         </p>
       </div>
     </section>

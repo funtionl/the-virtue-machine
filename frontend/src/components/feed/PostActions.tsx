@@ -1,12 +1,12 @@
 import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 
-const PostActions = ({ postId }: { postId: number }) => {
+const PostActions = ({ postId }: { postId: string }) => {
   const navigate = useNavigate();
   const location = useLocation();
 
   return (
-    <div className="mt-3 flex gap-4">
+    <div className="mt-3 flex gap-4" onClick={(event) => event.stopPropagation()}>
       <button>
         <ThumbsUp size={20} />
       </button>
@@ -15,11 +15,11 @@ const PostActions = ({ postId }: { postId: number }) => {
       </button>
 
       <button
-        onClick={() =>
+        onClick={() => {
           navigate(`/post/${postId}`, {
             state: { background: location },
-          })
-        }
+          });
+        }}
       >
         <MessageCircle size={20} />
       </button>
