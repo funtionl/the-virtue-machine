@@ -103,6 +103,21 @@ export const getPostById = async (
 ) => {
   const { id } = req.params;
 
+  let currentUserId: string | null = null;
+  try {
+    const clerkUserId = getClerkUserId(req);
+
+    if (clerkUserId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkUserId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id ?? null;
+    }
+  } catch {
+    // User not authenticated, that's fine for public feed
+  }
+
   const post = await prisma.post.findUnique({
     where: { id },
     select: {
@@ -125,12 +140,26 @@ export const getPostById = async (
           reactions: true,
         },
       },
+      ...(currentUserId
+        ? {
+            reactions: {
+              where: { userId: currentUserId },
+              select: { storedType: true },
+            },
+          }
+        : {}),
     },
   });
 
   if (!post) return res.status(404).json({ message: "Post not found" });
 
-  return res.json(post);
+  // Transform to include userReaction field
+  const transformedPost = {
+    ...post,
+    likedByCurrentUser: post.reactions?.[0]?.storedType === "UP",
+    reactions: undefined, // Remove the reactions array
+  };
+  return res.json(transformedPost);
 };
 
 /**

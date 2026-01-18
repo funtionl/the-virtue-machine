@@ -2,6 +2,7 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { Send, ThumbsUp, ThumbsDown } from "lucide-react";
 import type { Post, Comment } from "@/features/home/posts.api";
 import {
+  fetchPostById,
   fetchCommentsForPost,
   createCommentForPost,
   toggleReaction,
@@ -9,7 +10,7 @@ import {
 import CommentItem from "@/features/home/components/CommentItem";
 
 type Props = {
-  post: Post;
+  postId: string;
   onClose: () => void;
 };
 
@@ -20,21 +21,44 @@ const formatPostDate = (value: string) =>
     year: "numeric",
   });
 
-const PostDetailModal = ({ post, onClose }: Props) => {
+const PostDetailModal = ({ postId, onClose }: Props) => {
+  const [post, setPost] = useState<Post | null>(null);
+  const [isPostLoading, setIsPostLoading] = useState(true);
   const [comments, setComments] = useState<Comment[]>([]);
   const [commentInput, setCommentInput] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoadingComments, setIsLoadingComments] = useState(false);
   const [hasMoreComments, setHasMoreComments] = useState(true);
   const [nextCursor, setNextCursor] = useState<string | null>(null);
-  const [isLiked, setIsLiked] = useState(post.likedByCurrentUser);
-  const [reactionsCount, setReactionsCount] = useState(post._count.reactions);
+  const [isLiked, setIsLiked] = useState(false);
+  const [reactionsCount, setReactionsCount] = useState(0);
   const [isReactionLoading, setIsReactionLoading] = useState(false);
   const commentsEndRef = useRef<HTMLDivElement>(null);
   const commentsContainerRef = useRef<HTMLDivElement>(null);
 
+  // Load post data
+  useEffect(() => {
+    const loadPost = async () => {
+      try {
+        setIsPostLoading(true);
+        const data = await fetchPostById(postId);
+        setPost(data);
+        setIsLiked(data.likedByCurrentUser);
+        setReactionsCount(data._count.reactions);
+      } catch (error) {
+        console.error("Failed to load post:", error);
+      } finally {
+        setIsPostLoading(false);
+      }
+    };
+
+    loadPost();
+  }, [postId]);
+
   // Load initial comments
   useEffect(() => {
+    if (!post) return;
+
     const loadComments = async () => {
       try {
         setIsLoadingComments(true);
@@ -50,11 +74,11 @@ const PostDetailModal = ({ post, onClose }: Props) => {
     };
 
     loadComments();
-  }, [post.id]);
+  }, [post]);
 
   // Load more comments when scrolling to bottom
   const loadMoreComments = useCallback(async () => {
-    if (!hasMoreComments || isLoadingComments || !nextCursor) return;
+    if (!post || !hasMoreComments || isLoadingComments || !nextCursor) return;
 
     try {
       setIsLoadingComments(true);
@@ -70,7 +94,7 @@ const PostDetailModal = ({ post, onClose }: Props) => {
     } finally {
       setIsLoadingComments(false);
     }
-  }, [post.id, nextCursor, hasMoreComments, isLoadingComments]);
+  }, [post, nextCursor, hasMoreComments, isLoadingComments]);
 
   const handleScroll = useCallback(() => {
     if (!commentsContainerRef.current) return;
@@ -95,7 +119,7 @@ const PostDetailModal = ({ post, onClose }: Props) => {
   const handleSubmitComment = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!commentInput.trim() || isSubmitting) return;
+    if (!post || !commentInput.trim() || isSubmitting) return;
 
     try {
       setIsSubmitting(true);
@@ -114,7 +138,7 @@ const PostDetailModal = ({ post, onClose }: Props) => {
   const handlePostThumbsUp = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (isReactionLoading) return;
+    if (!post || isReactionLoading) return;
 
     try {
       setIsReactionLoading(true);
@@ -136,7 +160,7 @@ const PostDetailModal = ({ post, onClose }: Props) => {
   const handlePostThumbsDown = async (e: React.MouseEvent) => {
     e.stopPropagation();
 
-    if (isReactionLoading) return;
+    if (!post || isReactionLoading) return;
 
     if (!isLiked) {
       try {
@@ -177,6 +201,32 @@ const PostDetailModal = ({ post, onClose }: Props) => {
       document.body.style.overflow = originalOverflow;
     };
   }, []);
+
+  if (isPostLoading) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        onClick={onClose}
+      >
+        <div className="rounded-2xl bg-white p-8">
+          <p className="text-slate-600">Loading post...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!post) {
+    return (
+      <div
+        className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4"
+        onClick={onClose}
+      >
+        <div className="rounded-2xl bg-white p-8">
+          <p className="text-slate-600">Failed to load post</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div

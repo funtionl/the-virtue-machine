@@ -56,6 +56,11 @@ export const fetchAllPosts = async (limit = 25) => {
   return collected;
 };
 
+export const fetchPostById = async (postId: string) => {
+  const response = await apiClient.get<Post>(`/api/posts/${postId}`);
+  return response.data;
+};
+
 export const createPost = async (data: {
   content: string;
   imageUrl?: string;

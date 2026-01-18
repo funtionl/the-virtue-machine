@@ -6,7 +6,7 @@ import { fetchAllPosts, type Post } from "@/features/home/posts.api";
 
 const Home = () => {
   const [posts, setPosts] = useState<Post[]>([]);
-  const [selectedPost, setSelectedPost] = useState<Post | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const [isComposeOpen, setIsComposeOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -69,16 +69,19 @@ const Home = () => {
         <div className="columns-1 gap-x-6 sm:columns-2 lg:columns-3 xl:columns-4">
           {sortedPosts.map((post) => (
             <div key={post.id} className="mb-6 break-inside-avoid">
-              <PostCard post={post} onOpen={setSelectedPost} />
+              <PostCard
+                post={post}
+                onOpen={(post) => setSelectedPostId(post.id)}
+              />
             </div>
           ))}
         </div>
       )}
 
-      {selectedPost && (
+      {selectedPostId && (
         <PostDetailModal
-          post={selectedPost}
-          onClose={() => setSelectedPost(null)}
+          postId={selectedPostId}
+          onClose={() => setSelectedPostId(null)}
         />
       )}
 
