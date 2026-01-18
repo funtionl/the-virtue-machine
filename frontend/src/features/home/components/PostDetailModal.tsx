@@ -237,11 +237,11 @@ const PostDetailModal = ({ postId, onClose }: Props) => {
         className="flex max-h-[85vh] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-xl md:flex-row"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="relative w-full bg-slate-100 md:w-1/2">
+        <div className="relative flex items-center justify-center w-full bg-slate-100 md:w-1/2 overflow-y-auto">
           <img
             src={post.imageUrl}
             alt={post.content.slice(0, 80)}
-            className="h-full w-full object-cover"
+            className="max-h-full w-full object-contain p-4"
           />
         </div>
 
