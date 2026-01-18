@@ -4,7 +4,7 @@ import {
   SignedOut,
   SignInButton,
   SignUpButton,
-  UserButton
+  UserButton,
 } from "@clerk/clerk-react";
 import { Sparkles } from "lucide-react";
 
@@ -22,15 +22,29 @@ const TopNav = () => {
           <NavLink
             to="/"
             className={({ isActive }) =>
-              isActive ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+              isActive
+                ? "text-slate-900"
+                : "text-slate-500 hover:text-slate-900"
             }
           >
             Home
           </NavLink>
           <NavLink
+            to="/about"
+            className={({ isActive }) =>
+              isActive
+                ? "text-slate-900"
+                : "text-slate-500 hover:text-slate-900"
+            }
+          >
+            About
+          </NavLink>
+          <NavLink
             to="/app"
             className={({ isActive }) =>
-              isActive ? "text-slate-900" : "text-slate-500 hover:text-slate-900"
+              isActive
+                ? "text-slate-900"
+                : "text-slate-500 hover:text-slate-900"
             }
           >
             App
