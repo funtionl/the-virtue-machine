@@ -1,29 +1,7 @@
 import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { getClerkUserId } from "../middlewares/clerkAuth";
-
-/**
- * Replace this later with your real "Virtue AI" function.
- */
-async function virtueRewrite(text: string): Promise<string> {
-  // TODO: call your AI here
-  return text.trim();
-}
-
-async function getDbUserOrThrow(clerkUserId: string) {
-  const user = await prisma.user.findUnique({
-    where: { clerkUserId },
-    select: { id: true, clerkUserId: true },
-  });
-
-  if (!user) {
-    const err = new Error("User not found. Call /users/sync first.");
-    (err as any).statusCode = 404;
-    throw err;
-  }
-
-  return user;
-}
+import { getDbUserOrThrow, virtueRewrite } from "./controllerHelpers";
 
 /**
  * GET /posts
@@ -283,5 +261,129 @@ export const deletePost = async (
   } catch (err: any) {
     const status = err?.statusCode ?? 500;
     return res.status(status).json({ message: err?.message ?? "Server error" });
+  }
+};
+
+/**
+ * GET /posts/:id/comments
+ * Public, cursor pagination.
+ * Query:
+ *  - cursor (optional): last comment id from previous page
+ *  - limit (optional): default 20, max 100
+ */
+export const listCommentsForPost = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  const { id } = req.params;
+  const cursor = req.query.cursor as string | undefined;
+  const limitRaw = req.query.limit as string | undefined;
+  const limit = Math.min(Math.max(Number(limitRaw ?? 20), 1), 100);
+
+  // Validate post exists (optional but nicer error)
+  const postExists = await prisma.post.findUnique({
+    where: { id: id },
+    select: { id: true },
+  });
+  if (!postExists) return res.status(404).json({ message: "Post not found" });
+
+  const comments = await prisma.comment.findMany({
+    where: { postId: id },
+    take: limit + 1,
+    ...(cursor
+      ? {
+          cursor: { id: cursor },
+          skip: 1,
+        }
+      : {}),
+    orderBy: [{ createdAt: "desc" }, { id: "desc" }],
+    select: {
+      id: true,
+      postId: true,
+      authorId: true,
+      content: true,
+      createdAt: true,
+      updatedAt: true,
+      author: {
+        select: {
+          id: true,
+          username: true,
+          avatarUrl: true,
+        },
+      },
+    },
+  });
+
+  const hasNextPage = comments.length > limit;
+  const items = hasNextPage ? comments.slice(0, limit) : comments;
+  const nextCursor = hasNextPage ? items[items.length - 1]?.id : null;
+
+  return res.json({
+    items,
+    pageInfo: { nextCursor, hasNextPage },
+  });
+};
+
+/**
+ * POST /posts/:id/comments
+ * Auth required
+ * body: { content: string }
+ */
+export const createCommentForPost = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id } = req.params;
+    const clerkUserId = getClerkUserId(req);
+    const dbUser = await getDbUserOrThrow(clerkUserId);
+
+    const { content } = req.body as { content?: string };
+
+    if (typeof content !== "string") {
+      return res.status(400).json({ message: "content is required" });
+    }
+    const trimmed = content.trim();
+    if (!trimmed)
+      return res.status(400).json({ message: "content cannot be empty" });
+    if (trimmed.length > 2000) {
+      return res
+        .status(400)
+        .json({ message: "content too long (max 2000 chars)" });
+    }
+
+    const postExists = await prisma.post.findUnique({
+      where: { id: id },
+      select: { id: true },
+    });
+    if (!postExists) return res.status(404).json({ message: "Post not found" });
+
+    const cleaned = await virtueRewrite(trimmed);
+
+    const created = await prisma.comment.create({
+      data: {
+        postId: id,
+        authorId: dbUser.id,
+        content: cleaned,
+      },
+      select: {
+        id: true,
+        postId: true,
+        authorId: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        author: { select: { id: true, username: true, avatarUrl: true } },
+      },
+    });
+
+    return res.status(201).json({
+      ...created,
+      isAuthor: created.authorId === dbUser.id,
+    });
+  } catch (err: any) {
+    return res
+      .status(err?.statusCode ?? 500)
+      .json({ message: err?.message ?? "Server error" });
   }
 };

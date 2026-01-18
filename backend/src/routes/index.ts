@@ -4,6 +4,7 @@ import uploadRoutes from "./uploadRoutes";
 import userRoutes from "./userRoutes";
 import postRoutes from "./postRoutes";
 import webhookRoutes from "./webhookRoutes";
+import commentRoutes from "./commentRoutes";
 
 const router = Router();
 
@@ -13,5 +14,6 @@ router.use("/uploads", uploadRoutes);
 router.use("/users", userRoutes);
 router.use("/posts", postRoutes);
 router.use("/webhooks", webhookRoutes);
+router.use("/comments", commentRoutes);
 
 export default router;
