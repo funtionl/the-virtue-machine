@@ -9,6 +9,11 @@ import {
   listCommentsForPost,
   createCommentForPost,
 } from "../controllers/postController";
+import {
+  deleteMyReactionForPost,
+  getMyReactionForPost,
+  upsertReactionForPost,
+} from "../controllers/reactionController";
 
 const router = Router();
 
@@ -24,5 +29,10 @@ router.delete("/:id", requireClerkAuth, deletePost);
 // comments under a post ✅ (becomes /posts/:id/comments)
 router.get("/:id/comments", listCommentsForPost);
 router.post("/:id/comments", requireClerkAuth, createCommentForPost);
+
+// reactions under a post ✅ (becomes /posts/:id/reaction)
+router.get("/:id/reaction", requireClerkAuth, getMyReactionForPost);
+router.put("/:id/reaction", requireClerkAuth, upsertReactionForPost);
+router.delete("/:id/reaction", requireClerkAuth, deleteMyReactionForPost);
 
 export default router;
