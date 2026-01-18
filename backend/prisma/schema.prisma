@@ -4,7 +4,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 enum ReactionType {
@@ -13,59 +12,60 @@ enum ReactionType {
 }
 
 model User {
-  id           String     @id @default(cuid())
-  clerkUserId  String     @unique
-  displayName  String?
-  createdAt    DateTime   @default(now())
-  updatedAt    DateTime   @updatedAt
-  posts        Post[]
-  comments     Comment[]
-  reactions    Reaction[]
+    id String @id @default(cuid())
+    username String 
+    email String @unique
+    password String
+    avatarUrl String?
+    
+    posts Post[]
+    comments Comment[]
+    reactions Reaction[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Post {
-  id              String      @id @default(cuid())
-  authorId        String
-  contentOriginal String
-  contentPositive String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  author          User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  comments        Comment[]
-  reactions       Reaction[]
+    id String @id @default(cuid())
+    authorId String
+    author User @relation(fields: [authorId], references: [id])
 
-  @@index([authorId])
+    imageUrl String
+    content String
+
+    comments Comment[]
+    reactions Reaction[]
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Comment {
-  id              String      @id @default(cuid())
-  postId          String
-  authorId        String
-  contentOriginal String
-  contentPositive String
-  createdAt       DateTime     @default(now())
-  updatedAt       DateTime     @updatedAt
-  post            Post         @relation(fields: [postId], references: [id], onDelete: Cascade)
-  author          User         @relation(fields: [authorId], references: [id], onDelete: Cascade)
-  reactions       Reaction[]
+    id String @id @default(cuid())
+    authorId String
+    postId String
 
-  @@index([postId])
-  @@index([authorId])
+    author User @relation(fields: [authorId], references: [id])
+    post Post @relation(fields: [postId], references: [id])
+
+    content String 
+
+    createdAt DateTime @default(now())
+    updatedAt DateTime @updatedAt
 }
 
 model Reaction {
-  id        String       @id @default(cuid())
-  type      ReactionType
-  postId    String?
-  commentId String?
-  userId    String
-  createdAt DateTime     @default(now())
+    id String @id @default(cuid())
+    postId String
+    userId String
 
-  post      Post?        @relation(fields: [postId], references: [id], onDelete: Cascade)
-  comment   Comment?     @relation(fields: [commentId], references: [id], onDelete: Cascade)
-  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+    storedType ReactionType @default(UP)
 
-  @@index([postId])
-  @@index([commentId])
-  @@index([userId])
+    post Post @relation(fields: [postId], references: [id])
+    user User @relation(fields: [userId], references: [id])
+
+    createdAt DateTime @default(now())
+
+    @@unique([postId, userId])
 }
