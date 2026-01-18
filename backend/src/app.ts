@@ -9,12 +9,14 @@ import path from "path";
 
 const app = express();
 
-app.use(
-  cors({
-    origin: env.corsOrigin,
-    credentials: true,
-  }),
-);
+if (env.nodeEnv !== "production") {
+  app.use(
+    cors({
+      origin: env.corsOrigin,
+      credentials: true,
+    }),
+  );
+}
 app.use(express.json());
 // serve uploaded files
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
