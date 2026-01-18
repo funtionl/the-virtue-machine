@@ -72,17 +72,29 @@ router.post(
         return res.status(400).send("Missing email address");
       }
 
+      const username = buildUsername(data, email);
+      const avatarUrl =
+        (data.image_url ?? data.profile_image_url ?? "").trim() || "";
+
       const existingUser = await prisma.user.findFirst({
         where: {
           OR: [{ clerkUserId: data.id }, { email }],
         },
       });
 
-      if (!existingUser) {
-        const username = buildUsername(data, email);
-        const avatarUrl =
-          (data.image_url ?? data.profile_image_url ?? "").trim() || "";
-
+      if (existingUser) {
+        // Update existing user
+        await prisma.user.update({
+          where: { id: existingUser.id },
+          data: {
+            clerkUserId: data.id,
+            email,
+            username,
+            avatarUrl,
+          },
+        });
+      } else {
+        // Create new user
         await prisma.user.create({
           data: {
             clerkUserId: data.id,

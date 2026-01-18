@@ -222,7 +222,7 @@ CORS_ORIGIN=http://localhost:5173
 
 ### Health
 
-- `GET /api/v1/health` - API status check
+- `GET /api/health` - API status check
 
 ## Contributing
 

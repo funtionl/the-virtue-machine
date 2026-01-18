@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { requireClerkAuth } from "../middlewares/clerkAuth";
+import { uploadMiddleware } from "../middlewares/uploadMiddleware";
 import {
   listPosts,
   getPostById,
@@ -8,6 +9,7 @@ import {
   deletePost,
   listCommentsForPost,
   createCommentForPost,
+  togglePostReaction,
 } from "../controllers/postController";
 import {
   deleteMyReactionForPost,
@@ -22,7 +24,12 @@ router.get("/", listPosts);
 router.get("/:id", getPostById);
 
 // protected CRUD
-router.post("/", requireClerkAuth, createPost);
+router.post(
+  "/",
+  requireClerkAuth,
+  uploadMiddleware.single("image"),
+  createPost,
+);
 router.patch("/:id", requireClerkAuth, updatePost);
 router.delete("/:id", requireClerkAuth, deletePost);
 
@@ -33,6 +40,9 @@ router.post("/:id/comments", requireClerkAuth, createCommentForPost);
 // reactions under a post ✅ (becomes /posts/:id/reaction)
 router.get("/:id/reaction", requireClerkAuth, getMyReactionForPost);
 router.put("/:id/reaction", requireClerkAuth, upsertReactionForPost);
-router.delete("/:id/reaction", requireClerkAuth, deleteMyReactionForPost);
+
+// reactions ✅ (toggle thumbs up, becomes /posts/:id/reactions)
+router.post("/:id/reactions", requireClerkAuth, togglePostReaction);
+router.delete("/:id/reactions", requireClerkAuth, togglePostReaction);
 
 export default router;

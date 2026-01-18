@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 import { prisma } from "../lib/prisma";
 import { getClerkUserId } from "../middlewares/clerkAuth";
 import { getDbUserOrThrow, virtueRewrite } from "./controllerHelpers";
+import { env } from "../config/env";
 
 /**
  * GET /posts
@@ -15,6 +16,22 @@ export const listPosts = async (req: Request, res: Response) => {
   const cursor = req.query.cursor as string | undefined;
 
   const limit = Math.min(Math.max(Number(limitRaw ?? 10), 1), 50);
+
+  // Try to get the current user for checking reactions
+  let currentUserId: string | null = null;
+  try {
+    const clerkUserId = getClerkUserId(req);
+
+    if (clerkUserId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkUserId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id ?? null;
+    }
+  } catch {
+    // User not authenticated, that's fine for public feed
+  }
 
   const posts = await prisma.post.findMany({
     take: limit + 1, // fetch one extra to determine hasNextPage
@@ -44,6 +61,14 @@ export const listPosts = async (req: Request, res: Response) => {
           reactions: true,
         },
       },
+      ...(currentUserId
+        ? {
+            reactions: {
+              where: { userId: currentUserId },
+              select: { storedType: true },
+            },
+          }
+        : {}),
     },
   });
 
@@ -52,8 +77,15 @@ export const listPosts = async (req: Request, res: Response) => {
 
   const nextCursor = hasNextPage ? items[items.length - 1]?.id : null;
 
+  // Transform to include userReaction field
+  const transformedItems = items.map((post) => ({
+    ...post,
+    likedByCurrentUser: post.reactions?.[0]?.storedType === "UP",
+    reactions: undefined, // Remove the reactions array
+  }));
+
   return res.json({
-    items,
+    items: transformedItems,
     pageInfo: {
       nextCursor,
       hasNextPage,
@@ -71,6 +103,21 @@ export const getPostById = async (
   res: Response,
 ) => {
   const { id } = req.params;
+
+  let currentUserId: string | null = null;
+  try {
+    const clerkUserId = getClerkUserId(req);
+
+    if (clerkUserId) {
+      const user = await prisma.user.findUnique({
+        where: { clerkUserId: clerkUserId },
+        select: { id: true },
+      });
+      currentUserId = user?.id ?? null;
+    }
+  } catch {
+    // User not authenticated, that's fine for public feed
+  }
 
   const post = await prisma.post.findUnique({
     where: { id },
@@ -94,42 +141,61 @@ export const getPostById = async (
           reactions: true,
         },
       },
+      ...(currentUserId
+        ? {
+            reactions: {
+              where: { userId: currentUserId },
+              select: { storedType: true },
+            },
+          }
+        : {}),
     },
   });
 
   if (!post) return res.status(404).json({ message: "Post not found" });
 
-  return res.json(post);
+  // Transform to include userReaction field
+  const transformedPost = {
+    ...post,
+    likedByCurrentUser: post.reactions?.[0]?.storedType === "UP",
+    reactions: undefined, // Remove the reactions array
+  };
+  return res.json(transformedPost);
 };
 
 /**
  * POST /posts
  * Auth required.
- * body: { imageUrl: string, content: string }
+ * multipart form data: { content: string, image?: file }
  */
 export const createPost = async (req: Request, res: Response) => {
   try {
     const clerkUserId = getClerkUserId(req);
+
     const dbUser = await getDbUserOrThrow(clerkUserId);
 
-    const { imageUrl, content } = req.body as {
-      imageUrl?: string;
+    const { content } = req.body as {
       content?: string;
     };
+    const file = (req as any).file as Express.Multer.File | undefined;
 
-    if (typeof imageUrl !== "string" || !imageUrl.trim()) {
-      return res.status(400).json({ message: "imageUrl is required" });
-    }
     if (typeof content !== "string" || !content.trim()) {
       return res.status(400).json({ message: "content is required" });
     }
 
     const cleaned = await virtueRewrite(content);
 
+    // Build imageUrl if file was uploaded
+    let imageUrl: string | undefined = undefined;
+    if (file) {
+      // Generate the URL that the frontend can use to fetch the image
+      imageUrl = `${env.apiBaseUrl}/uploads/${file.filename}`;
+    }
+
     const created = await prisma.post.create({
       data: {
         authorId: dbUser.id,
-        imageUrl: imageUrl.trim(),
+        ...(imageUrl ? { imageUrl } : {}),
         content: cleaned,
       },
       select: {
@@ -385,5 +451,91 @@ export const createCommentForPost = async (
     return res
       .status(err?.statusCode ?? 500)
       .json({ message: err?.message ?? "Server error" });
+  }
+};
+
+/**
+ * POST /posts/:id/reactions
+ * Auth required. Toggle thumbs up reaction.
+ */
+export const togglePostReaction = async (
+  req: Request<{ id: string }>,
+  res: Response,
+) => {
+  try {
+    const { id: postId } = req.params;
+    const clerkUserId = getClerkUserId(req);
+    const dbUser = await getDbUserOrThrow(clerkUserId);
+
+    // Verify post exists
+    const post = await prisma.post.findUnique({
+      where: { id: postId },
+      select: { id: true },
+    });
+
+    if (!post) {
+      return res.status(404).json({ message: "Post not found" });
+    }
+
+    // Check if user already has a reaction on this post
+    const existing = await prisma.reaction.findUnique({
+      where: {
+        postId_userId: {
+          postId,
+          userId: dbUser.id,
+        },
+      },
+    });
+
+    if (existing) {
+      // If reaction exists, remove it
+      await prisma.reaction.delete({
+        where: {
+          postId_userId: {
+            postId,
+            userId: dbUser.id,
+          },
+        },
+      });
+    } else {
+      // If reaction doesn't exist, create it
+      await prisma.reaction.create({
+        data: {
+          postId,
+          userId: dbUser.id,
+          storedType: "UP",
+        },
+      });
+    }
+
+    // Return updated post with counts
+    const updated = await prisma.post.findUnique({
+      where: { id: postId },
+      select: {
+        id: true,
+        imageUrl: true,
+        content: true,
+        createdAt: true,
+        updatedAt: true,
+        author: {
+          select: {
+            id: true,
+            username: true,
+            avatarUrl: true,
+          },
+        },
+        _count: {
+          select: {
+            comments: true,
+            reactions: true,
+          },
+        },
+      },
+    });
+
+    return res.json(updated);
+  } catch (err: any) {
+    const status = err?.statusCode ?? 500;
+    return res.status(status).json({ message: err?.message ?? "Server error" });
   }
 };
