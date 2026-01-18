@@ -82,6 +82,11 @@ const Home = () => {
         <PostDetailModal
           postId={selectedPostId}
           onClose={() => setSelectedPostId(null)}
+          onPostUpdate={(updatedPost) => {
+            setPosts((prevPosts) =>
+              prevPosts.map((p) => (p.id === updatedPost.id ? updatedPost : p)),
+            );
+          }}
         />
       )}
 

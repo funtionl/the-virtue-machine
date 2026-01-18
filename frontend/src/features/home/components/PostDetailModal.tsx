@@ -12,6 +12,7 @@ import CommentItem from "@/features/home/components/CommentItem";
 type Props = {
   postId: string;
   onClose: () => void;
+  onPostUpdate?: (post: Post) => void;
 };
 
 const formatPostDate = (value: string) =>
@@ -21,7 +22,7 @@ const formatPostDate = (value: string) =>
     year: "numeric",
   });
 
-const PostDetailModal = ({ postId, onClose }: Props) => {
+const PostDetailModal = ({ postId, onClose, onPostUpdate }: Props) => {
   const [post, setPost] = useState<Post | null>(null);
   const [isPostLoading, setIsPostLoading] = useState(true);
   const [comments, setComments] = useState<Comment[]>([]);
@@ -143,12 +144,28 @@ const PostDetailModal = ({ postId, onClose }: Props) => {
     try {
       setIsReactionLoading(true);
       await toggleReaction(post.id);
-      setIsLiked(!isLiked);
+      const newLikedState = !isLiked;
+      setIsLiked(newLikedState);
 
+      let newReactionsCount = reactionsCount;
       if (isLiked) {
-        setReactionsCount((prev) => Math.max(0, prev - 1));
+        newReactionsCount = Math.max(0, reactionsCount - 1);
+        setReactionsCount(newReactionsCount);
       } else {
-        setReactionsCount((prev) => prev + 1);
+        newReactionsCount = reactionsCount + 1;
+        setReactionsCount(newReactionsCount);
+      }
+
+      // Notify parent of post update
+      if (onPostUpdate && post) {
+        onPostUpdate({
+          ...post,
+          likedByCurrentUser: newLikedState,
+          _count: {
+            ...post._count,
+            reactions: newReactionsCount,
+          },
+        });
       }
     } catch (error) {
       console.error("Failed to toggle reaction:", error);
@@ -167,7 +184,20 @@ const PostDetailModal = ({ postId, onClose }: Props) => {
         setIsReactionLoading(true);
         await toggleReaction(post.id);
         setIsLiked(true);
-        setReactionsCount((prev) => prev + 1);
+        const newReactionsCount = reactionsCount + 1;
+        setReactionsCount(newReactionsCount);
+
+        // Notify parent of post update
+        if (onPostUpdate && post) {
+          onPostUpdate({
+            ...post,
+            likedByCurrentUser: true,
+            _count: {
+              ...post._count,
+              reactions: newReactionsCount,
+            },
+          });
+        }
       } catch (error) {
         console.error("Failed to toggle reaction:", error);
       } finally {

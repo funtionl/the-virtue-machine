@@ -1,5 +1,5 @@
 import { ThumbsUp, ThumbsDown, MessageCircle } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toggleReaction } from "@/features/home/posts.api";
 
 type PostActionsProps = {
@@ -29,6 +29,12 @@ const PostActions = ({
   const [isLoading, setIsLoading] = useState(false);
   const [currentThumbsUpCount, setCurrentThumbsUpCount] =
     useState(thumbsUpCount);
+
+  // Sync state with props when they change (e.g., from modal update)
+  useEffect(() => {
+    setIsLiked(likedByCurrentUser);
+    setCurrentThumbsUpCount(thumbsUpCount);
+  }, [likedByCurrentUser, thumbsUpCount]);
 
   const handleThumbsUp = async (e: React.MouseEvent) => {
     e.stopPropagation();
