@@ -20,6 +20,7 @@ If you don't like something, just scroll away. No downvotes, no negativity—jus
 ## Tech Stack
 
 ### Frontend
+
 - **Vite** - Next-generation frontend build tool
 - **React** - UI library for building interactive interfaces
 - **TypeScript** - Type-safe UI development
@@ -32,6 +33,7 @@ If you don't like something, just scroll away. No downvotes, no negativity—jus
 - **Clerk** - Authentication and user management
 
 ### Backend
+
 - **Bun** - Fast JavaScript runtime
 - **Express.js** - Web framework for Node.js
 - **Prisma** - Modern ORM for database operations
@@ -40,6 +42,7 @@ If you don't like something, just scroll away. No downvotes, no negativity—jus
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js/Bun installed
 - PostgreSQL database running
 - Git
@@ -112,9 +115,47 @@ bun prisma studio
 bun prisma migrate reset
 ```
 
+### Clerk Webhook Setup
+
+To receive webhooks from Clerk when users are created, you need to set up ngrok for local development to expose your local server to the internet.
+
+#### 1. Install ngrok
+
+Follow the [Clerk webhook setup guide](https://clerk.com/docs/guides/development/webhooks/syncing#set-up-ngrok).
+
+For WSL, run:
+
+```bash
+curl -sSL https://ngrok-agent.s3.amazonaws.com/ngrok.asc \
+  | sudo tee /etc/apt/trusted.gpg.d/ngrok.asc >/dev/null \
+  && echo "deb https://ngrok-agent.s3.amazonaws.com bookworm main" \
+  | sudo tee /etc/apt/sources.list.d/ngrok.list \
+  && sudo apt update \
+  && sudo apt install ngrok
+```
+
+#### 2. Add ngrok Auth Token
+
+Create an account at [ngrok.com](https://ngrok.com) and add your auth token:
+
+```bash
+ngrok config add-authtoken <YOUR_AUTH_TOKEN>
+```
+
+#### 3. Start ngrok
+
+Run ngrok to forward your local port 3000 to a public URL:
+
+```bash
+ngrok http 3000
+```
+
+This will provide you with a public URL (e.g., `https://xxxx-xx-xxx-xxx-xx.ngrok.io`) that you can use to configure your Clerk webhook endpoint.
+
 ## Development Workflow
 
 ### Frontend Development
+
 ```bash
 cd frontend
 npm run dev        # Start dev server with hot reload
@@ -124,6 +165,7 @@ npm run test       # Run tests
 ```
 
 ### Backend Development
+
 ```bash
 cd backend
 bun run dev        # Start server with auto-reload
@@ -161,12 +203,14 @@ virtue-machine/
 ## Environment Variables
 
 ### Frontend
+
 ```
 VITE_API_URL=http://localhost:3000
 VITE_CLERK_PUBLISHABLE_KEY=pk_test_your_key
 ```
 
 ### Backend
+
 ```
 DATABASE_URL=postgresql://user:password@localhost:5432/virtue_machine
 NODE_ENV=development
@@ -177,6 +221,7 @@ CORS_ORIGIN=http://localhost:5173
 ## API Endpoints
 
 ### Health
+
 - `GET /api/v1/health` - API status check
 
 ## Contributing
